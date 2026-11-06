@@ -1,0 +1,26 @@
+# Flutter build output
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+.vs/
+*.iml
+
+# .NET build output (windows/)
+windows/artifacts/
+windows/**/[Bb]in/
+windows/**/[Oo]bj/
+windows/**/*.user
+
+# Model weights never belong in git (CC-BY-4.0, ~650 MB)
+*.onnx
+models/
+
+# OS noise
+.DS_Store
+Thumbs.db
