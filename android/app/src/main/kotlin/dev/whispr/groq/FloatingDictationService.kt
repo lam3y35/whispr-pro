@@ -298,11 +298,12 @@ class FloatingDictationService : Service(), RecognitionListener {
         val prefs = getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
         language = prefs.getString("language", "auto") ?: "auto"
 
+        val mode = WhisperTurboClient.getEngineMode(this)
         val hasKey = WhisperTurboClient.hasApiKey(this)
         val modelPref = WhisperTurboClient.getModelPreference(this)
         val modelDisplayName = if (modelPref.contains("turbo")) "Whisper Turbo" else "Whisper Large-v3"
 
-        if (hasKey) {
+        if (mode == "cloud" && hasKey) {
             isUsingWhisperTurbo = true
             val started = audioRecorder?.start() ?: false
             if (started) {
@@ -317,8 +318,8 @@ class FloatingDictationService : Service(), RecognitionListener {
             }
         }
 
-        if (!hasKey) {
-            Toast.makeText(this, "يرجى إدخال مفتاح Groq API المجاني في تطبيق Whispr Pro", Toast.LENGTH_LONG).show()
+        if (mode == "cloud" && !hasKey) {
+            Toast.makeText(this, "يرجى إدخال مفتاح Groq المجاني في Whispr Pro للتفريغ السحابي", Toast.LENGTH_SHORT).show()
         }
 
         recognizer?.destroy()

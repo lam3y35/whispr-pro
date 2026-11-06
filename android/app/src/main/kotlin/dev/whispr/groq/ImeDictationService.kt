@@ -1008,11 +1008,12 @@ class ImeDictationService : InputMethodService(), RecognitionListener {
         val prefs = getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
         language = prefs.getString("language", "auto") ?: "auto"
 
+        val mode = WhisperTurboClient.getEngineMode(this)
         val hasKey = WhisperTurboClient.hasApiKey(this)
         val modelPref = WhisperTurboClient.getModelPreference(this)
         val modelDisplayName = if (modelPref.contains("turbo")) "Whisper Turbo" else "Whisper Large-v3"
 
-        if (hasKey) {
+        if (mode == "cloud" && hasKey) {
             isUsingWhisperTurbo = true
             val started = audioRecorder?.start() ?: false
             if (started) {
@@ -1030,10 +1031,10 @@ class ImeDictationService : InputMethodService(), RecognitionListener {
             }
         }
 
-        // If no API key is entered yet, prompt the user
-        if (!hasKey) {
-            statusText.text = "⚠️ أدخل مفتاح Groq في تطبيق Whispr Pro"
-            Toast.makeText(this, "يرجى إدخال مفتاح Groq API المجاني في تطبيق Whispr Pro", Toast.LENGTH_LONG).show()
+        // If in Cloud mode but no API key is entered yet, notify and fall back to local
+        if (mode == "cloud" && !hasKey) {
+            statusText.text = "Tip: أدخل مفتاح Groq للتفريغ السحابي (جاري استخدام المايك المحلي)"
+            Toast.makeText(this, "يرجى إدخال مفتاح Groq المجاني في التطبيق للتفريغ السحابي", Toast.LENGTH_SHORT).show()
         }
 
         recognizer?.destroy()

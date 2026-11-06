@@ -110,6 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
   double _level = 0;
   String _language = 'auto';
   String _modelPreference = 'whisper-large-v3';
+  String _engineMode = 'cloud';
   String? _deviceSummary;
   bool _floatingButtonActive = false;
   bool _accessibilityEnabled = false;
@@ -134,6 +135,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _checkFloatingButtonStatus();
       bridge.invokeMethod<String>('getLanguage').then((val) {
         if (val != null && mounted) setState(() => _language = val);
+      }).catchError((dynamic _) {
+        return null;
+      });
+      bridge.invokeMethod<String>('getEngineMode').then((val) {
+        if (val != null && mounted) setState(() => _engineMode = val);
       }).catchError((dynamic _) {
         return null;
       });
@@ -261,6 +267,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _language = lang);
     if (_isAndroid) {
       await bridge.invokeMethod('setLanguage', {'language': lang});
+    }
+  }
+
+  Future<void> _setEngineMode(String mode) async {
+    setState(() => _engineMode = mode);
+    if (_isAndroid) {
+      await bridge.invokeMethod('setEngineMode', {'mode': mode});
     }
   }
 
@@ -427,26 +440,83 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 14),
-            const _Label('GROQ CLOUD AI MODEL · موديل السحابة المجاني'),
+            const _Label('ENGINE MODE · وضع التفريغ (سحابي أو محلي)'),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _LangChip(
-                  label: '⭐ WHISPER LARGE-V3',
-                  selected: _modelPreference == 'whisper-large-v3' || _modelPreference == 'large_v3',
-                  onTap: () => _setModelPreference('whisper-large-v3'),
+                  label: '⚡ GROQ CLOUD (سحابي)',
+                  selected: _engineMode == 'cloud',
+                  onTap: () => _setEngineMode('cloud'),
                 ),
                 const SizedBox(width: 8),
                 _LangChip(
-                  label: '⚡ LARGE-V3-TURBO',
-                  selected: _modelPreference == 'whisper-large-v3-turbo' || _modelPreference == 'whisper_turbo',
-                  onTap: () => _setModelPreference('whisper-large-v3-turbo'),
+                  label: '📱 LOCAL DEVICE (محلي)',
+                  selected: _engineMode == 'local',
+                  onTap: () => _setEngineMode('local'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (_isAndroid) ...[
+            const SizedBox(height: 14),
+            if (_isAndroid && _engineMode == 'cloud') ...[
+              const _Label('GROQ CLOUD AI MODEL · موديل السحابة'),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _LangChip(
+                    label: '⭐ WHISPER LARGE-V3',
+                    selected: _modelPreference == 'whisper-large-v3' || _modelPreference == 'large_v3',
+                    onTap: () => _setModelPreference('whisper-large-v3'),
+                  ),
+                  const SizedBox(width: 8),
+                  _LangChip(
+                    label: '⚡ LARGE-V3-TURBO',
+                    selected: _modelPreference == 'whisper-large-v3-turbo' || _modelPreference == 'whisper_turbo',
+                    onTap: () => _setModelPreference('whisper-large-v3-turbo'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // If API Key is not added yet, show a prominent step-by-step guide
+              if (_apiKey.isEmpty) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF231F17),
+                    border: Border.all(color: Tokens.amber, width: 1.5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.key, color: Tokens.amber, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'كيفية الحصول على مفتاح Groq المجاني للأبد:',
+                              style: TextStyle(color: Tokens.amber, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '1. اضغط على زر "Get Free Groq Key" بالأسفل لفتح موقع Groq الرسمي.\n'
+                        '2. سجّل بحساب Google أو GitHub (مجاني تماماً وبدون أي فيزا).\n'
+                        '3. اضغط "Create API Key" وانسخ المفتاح الذي يبدأ بـ gsk_...\n'
+                        '4. الصق المفتاح في الخانة بالأسفل واضغط Save.\n'
+                        '🎉 ستحصل على ساعتين صوت مجاناً كل ساعة زمنية (2000 طلب يومياً) تتجدد للأبد!',
+                        style: TextStyle(color: Tokens.ink, fontSize: 11.5, height: 1.45),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -581,6 +651,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+            ] else if (_isAndroid && _engineMode == 'local') ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Tokens.panel,
+                  border: Border.all(color: Tokens.panelEdge),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.phone_android, size: 22, color: Color(0xFF00E5FF)),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'On-Device Speech Recognizer Active (محلي بدون إنترنت)\n'
+                        'يعمل محرك الهاتف المحلي بدون اتصال بالإنترنت وبدون الحاجة لأي مفاتيح أو حسابات.',
+                        style: TextStyle(color: Tokens.ink, fontSize: 12, height: 1.4),
+                      ),
+                    ),
                   ],
                 ),
               ),

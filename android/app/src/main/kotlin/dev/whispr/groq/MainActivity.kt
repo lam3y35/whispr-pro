@@ -109,8 +109,18 @@ class MainActivity : FlutterActivity(), RecognitionListener {
                     }
 
                     "setModelPreference" -> {
-                        val pref = call.argument<String>("preference") ?: "whisper_turbo"
+                        val pref = call.argument<String>("preference") ?: "whisper-large-v3"
                         WhisperTurboClient.setModelPreference(this@MainActivity, pref)
+                        result.success(null)
+                    }
+
+                    "getEngineMode" -> {
+                        result.success(WhisperTurboClient.getEngineMode(this@MainActivity))
+                    }
+
+                    "setEngineMode" -> {
+                        val mode = call.argument<String>("mode") ?: "cloud"
+                        WhisperTurboClient.setEngineMode(this@MainActivity, mode)
                         result.success(null)
                     }
 
@@ -290,10 +300,10 @@ class MainActivity : FlutterActivity(), RecognitionListener {
         rules = DictionaryStore.rules(this)
         inAppFinal = ""
 
-        val modelPref = WhisperTurboClient.getModelPreference(this)
+        val mode = WhisperTurboClient.getEngineMode(this)
         val hasKey = WhisperTurboClient.hasApiKey(this)
 
-        if (modelPref == "whisper_turbo" && hasKey) {
+        if (mode == "cloud" && hasKey) {
             isUsingWhisperTurbo = true
             if (audioRecorder == null) {
                 audioRecorder = WhisperAudioRecorder(this)

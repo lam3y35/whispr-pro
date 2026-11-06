@@ -35,12 +35,22 @@ object WhisperTurboClient {
 
     fun getModelPreference(context: Context): String {
         val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
-        return prefs.getString("model_preference", "whisper_turbo") ?: "whisper_turbo"
+        return prefs.getString("model_preference", "whisper-large-v3") ?: "whisper-large-v3"
     }
 
     fun setModelPreference(context: Context, pref: String) {
         val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("model_preference", pref).apply()
+    }
+
+    fun getEngineMode(context: Context): String {
+        val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
+        return prefs.getString("engine_mode", "cloud") ?: "cloud"
+    }
+
+    fun setEngineMode(context: Context, mode: String) {
+        val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("engine_mode", mode).apply()
     }
 
     sealed class Result {
