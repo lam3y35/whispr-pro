@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whispr_ai/dictionary.dart';
+import 'package:whispr_pro/dictionary.dart';
 
 /// Runs the shared behavioural contract — dictionary-test-vectors.json, the
 /// same file the Windows and macOS CI suites run — through the Dart port.

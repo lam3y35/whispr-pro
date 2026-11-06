@@ -2,5 +2,5 @@
 <!-- Declares Whispr AI as a system input method so it appears in
      Settings > System > Keyboards. -->
 <input-method xmlns:android="http://schemas.android.com/apk/res/android"
-    android:settingsActivity="dev.whispr.whispr_ai.MainActivity"
+    android:settingsActivity="dev.whispr.groq.MainActivity"
     android:supportsSwitchingToNextInputMethod="true" />

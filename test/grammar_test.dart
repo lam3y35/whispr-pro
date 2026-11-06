@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:whispr_ai/grammar.dart';
+import 'package:whispr_pro/grammar.dart';
 
 void main() {
   group('BilingualGrammarCorrector (Dart)', () {
