@@ -96,22 +96,26 @@ object WhisperTurboClient {
             // 2. Response format
             writeFormField(dos, boundary, "response_format", "json")
 
-            // 3. Prompt for punctuation & Egyptian/Arabic dialect clarity
-            val prompt = if (language == "ar") {
-                "كتابة باللغة العربية والعامية المصرية مع علامات الترقيم الصحيحة والهمزات وبدون أخطاء إملائية."
-            } else if (language == "en") {
-                "Punctuate properly with capital letters, commas, and questions."
+            // 3. Temperature: 0 enforces deterministic greedy decoding, preventing Whisper from
+            // randomly hallucinating translations or language drifts.
+            writeFormField(dos, boundary, "temperature", "0")
+
+            // 4. Balanced bilingual conditioning prompt:
+            // Whisper Large-v3 decoder mimics this style and vocabulary. Providing both natural English
+            // and Egyptian Arabic sentences prevents Whisper from translating English speech into Arabic,
+            // while preserving correct punctuation, capital letters, question marks, and hamzas in both languages.
+            val prompt = if (language == "en") {
+                "Hello, how are you? Good morning. Please transcribe clearly with proper capitalization, apostrophes, and punctuation."
             } else {
-                "Arabic, Egyptian Arabic, English, natural conversation, punctuated."
+                "Hello, how are you? Good morning. السلام عليكم، ازيك عامل ايه؟ تمام الحمد لله، شكراً لك."
             }
             writeFormField(dos, boundary, "prompt", prompt)
 
-            // 4. Language parameter (if specified)
-            if (language == "ar") {
-                writeFormField(dos, boundary, "language", "ar")
-            } else if (language == "en") {
-                writeFormField(dos, boundary, "language", "en")
-            }
+            // 5. Language parameter:
+            // CRITICAL: We deliberately NEVER pass language="ar" to Whisper's API because Whisper with
+            // language="ar" forces non-Arabic speech (like English) to be translated into Arabic rather
+            // than transcribed verbatim. When language is omitted, Whisper automatically detects whether
+            // the user spoke English, Arabic, or mixed code-switching, and transcribes verbatim in that exact language.
 
             // 5. Audio file
             dos.writeBytes("$twoHyphens$boundary$lineEnd")
