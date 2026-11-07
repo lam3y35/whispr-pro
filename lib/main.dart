@@ -535,7 +535,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Switch(
                       value: _smartCodeSwitching,
-                      activeColor: const Color(0xFF00E5FF),
+                      activeThumbColor: const Color(0xFF00E5FF),
                       onChanged: _toggleSmartCodeSwitching,
                     ),
                   ],
