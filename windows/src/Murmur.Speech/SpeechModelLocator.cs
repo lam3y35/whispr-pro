@@ -54,18 +54,26 @@ public static class SpeechModelLocator
     }
 
     /// <summary>
-    /// Creates a transcriber for the specified directory or best located model.
+    /// Creates a transcriber for the specified directory, Groq Cloud API, or best located model.
     /// </summary>
     /// <param name="modelDirectory">Explicit model directory or null to auto-locate.</param>
     /// <param name="language">Language code ("auto", "en", "ar").</param>
     /// <param name="executionProvider">"auto" (DirectML/CUDA on GPU, CPU on CPU), "cpu", or "gpu".</param>
     /// <param name="modelPreference">"auto", "best", or "default".</param>
+    /// <param name="groqApiKey">Optional Groq Cloud API key for instant Whisper Large-v3 cloud dictation.</param>
     public static ITranscriber Create(
         string? modelDirectory,
         string language = "auto",
         string executionProvider = "auto",
-        string modelPreference = "auto")
+        string modelPreference = "auto",
+        string? groqApiKey = null)
     {
+        var apiKey = groqApiKey ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            return new GroqWhisperTranscriber(apiKey);
+        }
+
         var dir = modelDirectory ?? Locate(modelPreference)?.Directory;
         if (dir is null) return new UnavailableTranscriber();
 

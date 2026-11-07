@@ -112,7 +112,7 @@ public sealed class MainWindow : Window
         root.Children.Add(Panels.Docked(BuildTransportPanel(), Dock.Top));
         root.Children.Add(Panels.Docked(BuildSectionKeys(), Dock.Top));
 
-        if (_composition is not null && !Composition.IsModelInstalled)
+        if (_composition is not null && !_composition.IsSpeechReady)
         {
             root.Children.Add(Panels.Docked(BuildModelBanner(), Dock.Top));
         }
@@ -199,8 +199,8 @@ public sealed class MainWindow : Window
                 },
                 new TextBlock
                 {
-                    Text = "Speech model not installed — Whispr AI cannot transcribe yet. "
-                         + "See Settings, or docs/PARAKEET-WINDOWS.md.",
+                    Text = "Whispr AI speech engine not configured. "
+                         + "Enter your free Groq API Key in Settings for instant cloud dictation, or install an ONNX model.",
                     FontFamily = Tokens.Fonts.Grotesque,
                     FontSize = Tokens.Fonts.Label,
                     Foreground = Tokens.Brushes.Ink,

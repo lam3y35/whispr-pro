@@ -41,6 +41,9 @@ public sealed record SettingsData
     /// <summary>Whether to automatically correct grammar, format punctuation, and clean fillers.</summary>
     public bool EnableGrammarCorrection { get; init; } = true;
 
+    /// <summary>Groq Cloud API Key for Whisper Large-v3 online dictation.</summary>
+    public string? GroqApiKey { get; init; }
+
     /// <summary>Optional AI grammar endpoint (e.g. Ollama, Groq, or OpenAI-compatible URL).</summary>
     public string? AiGrammarEndpoint { get; init; }
 

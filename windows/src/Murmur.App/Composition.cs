@@ -52,8 +52,16 @@ public sealed class Composition : IAsyncDisposable
     /// <summary>Whether real audio and hotkey support were found.</summary>
     public bool IsPlatformAvailable { get; }
 
-    /// <summary>Whether the speech model is present on disk.</summary>
-    public static bool IsModelInstalled => SpeechModelLocator.Locate() is not null;
+    /// <summary>Whether speech recognition is ready (either Groq Cloud API key is configured or local model is present).</summary>
+    public bool IsSpeechReady =>
+        !string.IsNullOrWhiteSpace(Settings.Data.GroqApiKey) ||
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GROQ_API_KEY")) ||
+        SpeechModelLocator.Locate() is not null;
+
+    /// <summary>Whether the speech model is present on disk or cloud API is ready.</summary>
+    public static bool IsModelInstalled =>
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GROQ_API_KEY")) ||
+        SpeechModelLocator.Locate() is not null;
 
     /// <summary>Builds the object graph.</summary>
     public static Composition Create()
@@ -75,7 +83,8 @@ public sealed class Composition : IAsyncDisposable
                 settings.Data.ModelDirectory,
                 settings.Data.Language,
                 settings.Data.ExecutionProvider,
-                settings.Data.ModelPreference);
+                settings.Data.ModelPreference,
+                settings.Data.GroqApiKey);
 
             engine = new DictationEngine(
                 capture!, hotkey!, transcriber, injector!,

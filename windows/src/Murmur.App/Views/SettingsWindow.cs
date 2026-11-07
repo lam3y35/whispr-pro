@@ -97,7 +97,9 @@ public sealed class SettingsWindow : Window
                 },
             }),
 
-            Section("SPEECH MODEL", BuildModelSection()),
+            Section("GROQ CLOUD SPEECH API", BuildCloudSection()),
+
+            Section("OFFLINE SPEECH MODEL (OPTIONAL)", BuildModelSection()),
 
             Section("BEHAVIOUR", new StackPanel
             {
@@ -143,6 +145,60 @@ public sealed class SettingsWindow : Window
                     Foreground = dev.HasGpu ? new SolidColorBrush(Tokens.Colors.MeterGreen) : new SolidColorBrush(Tokens.Colors.InkSecondary),
                 },
                 Note(tierText),
+            },
+        };
+    }
+
+    private StackPanel BuildCloudSection()
+    {
+        var hasKey = !string.IsNullOrWhiteSpace(_settings.Data.GroqApiKey);
+
+        var keyBox = new TextBox
+        {
+            Text = _settings.Data.GroqApiKey ?? string.Empty,
+            Watermark = "Enter your Groq API key (gsk_...)",
+            FontFamily = Tokens.Fonts.Mono,
+            FontSize = Tokens.Fonts.Body,
+            PasswordChar = '•',
+        };
+
+        keyBox.TextChanged += (_, _) =>
+        {
+            var key = keyBox.Text?.Trim();
+            Save(_settings.Data with { GroqApiKey = string.IsNullOrWhiteSpace(key) ? null : key });
+        };
+
+        var status = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = Tokens.Space.Snug,
+            Children =
+            {
+                new Lamp
+                {
+                    IsLit = hasKey,
+                    LampColor = hasKey ? Tokens.Colors.MeterGreen : Tokens.Colors.MeterAmber,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+                new TextBlock
+                {
+                    Text = hasKey ? "Groq Cloud (Whisper Large-v3) Active" : "No Groq API Key set",
+                    FontFamily = Tokens.Fonts.Grotesque,
+                    FontSize = Tokens.Fonts.Body,
+                    Foreground = Tokens.Brushes.Ink,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+            },
+        };
+
+        return new StackPanel
+        {
+            Spacing = Tokens.Space.Snug,
+            Children =
+            {
+                status,
+                keyBox,
+                Note("Get your free API key at console.groq.com. Provides Whisper Large-v3 with 2 hours of audio per hour for free."),
             },
         };
     }

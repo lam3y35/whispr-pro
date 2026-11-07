@@ -98,6 +98,14 @@ public sealed class BilingualGrammarCorrectorTests
     }
 
     [Fact]
+    public void Code_switched_sentence_preserves_english_words()
+    {
+        var input = "أنا أستخدم Flutter في مشروعي";
+        var result = _corrector.Correct(input);
+        result.ShouldBe("أنا أستخدم Flutter في مشروعي.");
+    }
+
+    [Fact]
     public void Empty_or_whitespace_returns_empty()
     {
         _corrector.Correct("   ").ShouldBe(string.Empty);

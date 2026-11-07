@@ -61,6 +61,16 @@ public class BilingualGrammarCorrector
     private static readonly char[] ArClauseDelimiters = ['،', '؛', '؟', '.', '!', ',', ';'];
     private static readonly char[] PunctuationToTrim = ['،', '؛', '؟', '.', '!', ',', ';'];
 
+    /// <summary>Whether the text contains Latin/English letters.</summary>
+    public static bool HasLatin(string text)
+    {
+        foreach (var ch in text)
+        {
+            if (char.IsAsciiLetter(ch)) return true;
+        }
+        return false;
+    }
+
     /// <summary>Whether the text predominantly contains Arabic characters.</summary>
     public static bool IsArabic(string text)
     {
