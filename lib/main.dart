@@ -115,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _floatingButtonActive = false;
   bool _accessibilityEnabled = false;
   bool _smartMode = true;
+  bool _smartCodeSwitching = true;
   String _apiKey = '';
   bool _isTestingKey = false;
   String? _keyTestMessage;
@@ -145,6 +146,11 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       bridge.invokeMethod<String>('getModelPreference').then((val) {
         if (val != null && mounted) setState(() => _modelPreference = val);
+      }).catchError((dynamic _) {
+        return null;
+      });
+      bridge.invokeMethod<bool>('getSmartCodeSwitching').then((val) {
+        if (val != null && mounted) setState(() => _smartCodeSwitching = val);
       }).catchError((dynamic _) {
         return null;
       });
@@ -281,6 +287,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _modelPreference = pref);
     if (_isAndroid) {
       await bridge.invokeMethod('setModelPreference', {'preference': pref});
+    }
+  }
+
+  Future<void> _toggleSmartCodeSwitching(bool val) async {
+    setState(() => _smartCodeSwitching = val);
+    if (_isAndroid) {
+      await bridge.invokeMethod('setSmartCodeSwitching', {'enabled': val});
     }
   }
 
@@ -477,6 +490,56 @@ class _HomeScreenState extends State<HomeScreen> {
                     onTap: () => _setModelPreference('whisper-large-v3-turbo'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Tokens.panel,
+                  border: Border.all(
+                    color: _smartCodeSwitching ? const Color(0xFF00E5FF) : Tokens.panelEdge,
+                    width: _smartCodeSwitching ? 1.4 : 1.0,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: _smartCodeSwitching ? const Color(0x2600E5FF) : Colors.black26,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text('🔤', style: TextStyle(fontSize: 16)),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SMART CODE-SWITCHING · كتابة الإنجليزي باللاتيني',
+                            style: TextStyle(
+                              color: _smartCodeSwitching ? const Color(0xFF00E5FF) : Tokens.ink,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'كتابة الكلمات الإنجليزية المنطوقة وسط العربي (مثل meeting, link, project) بأحرف إنجليزية تلقائياً وبسرعة فائقة (0.1s)',
+                            style: TextStyle(color: Tokens.muted, fontSize: 10.5, height: 1.35),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _smartCodeSwitching,
+                      activeColor: const Color(0xFF00E5FF),
+                      onChanged: _toggleSmartCodeSwitching,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               // If API Key is not added yet, show a prominent step-by-step guide

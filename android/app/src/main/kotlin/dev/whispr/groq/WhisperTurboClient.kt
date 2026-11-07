@@ -53,6 +53,16 @@ object WhisperTurboClient {
         prefs.edit().putString("engine_mode", mode).apply()
     }
 
+    fun isSmartCodeSwitchingEnabled(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("smart_code_switching", true)
+    }
+
+    fun setSmartCodeSwitchingEnabled(context: Context, enabled: Boolean) {
+        val prefs = context.getSharedPreferences("whispr_pro_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("smart_code_switching", enabled).apply()
+    }
+
     sealed class Result {
         data class Success(val text: String) : Result()
         data class Error(val message: String, val code: Int? = null) : Result()
@@ -107,7 +117,7 @@ object WhisperTurboClient {
             val prompt = if (language == "en") {
                 "Hello, how are you? Good morning. Please transcribe clearly with proper capitalization, apostrophes, and punctuation."
             } else {
-                "Hello, how are you? Good morning. السلام عليكم، ازيك عامل ايه؟ تمام الحمد لله، شكراً لك."
+                "أنا هبعتلك الـ link على WhatsApp عشان الـ meeting، ونشوف الـ update بتاع الـ project. Hello, how are you? Good morning. السلام عليكم، ازيك عامل ايه؟ تمام الحمد لله، شكراً لك."
             }
             writeFormField(dos, boundary, "prompt", prompt)
 
@@ -162,8 +172,9 @@ object WhisperTurboClient {
             if (responseCode == 200) {
                 val responseStr = conn.inputStream.bufferedReader().use { it.readText() }
                 val json = JSONObject(responseStr)
-                val text = json.optString("text", "").trim()
-                return Result.Success(text)
+                val rawText = json.optString("text", "").trim()
+                val restored = restoreCodeSwitching(context, rawText)
+                return Result.Success(restored)
             } else {
                 val errorStr = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: "HTTP $responseCode"
                 val errMessage = try {
@@ -209,6 +220,89 @@ object WhisperTurboClient {
             }
         } catch (e: Exception) {
             Result.Error(e.localizedMessage ?: "Network error testing key")
+        } finally {
+            conn?.disconnect()
+        }
+    }
+
+    /**
+     * Option 3: Ultra-fast (~120ms) LLM post-processing using Groq Llama-3.1-8b-instant.
+     * Takes transcribed text and restores any transliterated or borrowed English loanwords
+     * inside Arabic speech back to standard English Latin spelling (e.g. "ميتنج" -> "meeting",
+     * "اللينك" -> "الـ link", "بروجكت" -> "project", "تاسك" -> "task", "شير" -> "share")
+     * without modifying authentic Arabic words or Egyptian dialect.
+     */
+    fun restoreCodeSwitching(context: Context, text: String): String {
+        if (text.isBlank() || !isSmartCodeSwitchingEnabled(context)) return text
+        if (!BilingualGrammarCorrector.isArabic(text)) return text
+
+        val apiKey = getApiKey(context)
+        if (apiKey.isEmpty()) return text
+
+        val isGroq = apiKey.startsWith("gsk_") || !apiKey.startsWith("sk-")
+        val chatUrl = if (isGroq) "https://api.groq.com/openai/v1/chat/completions" else "https://api.openai.com/v1/chat/completions"
+        val model = if (isGroq) "llama-3.1-8b-instant" else "gpt-4o-mini"
+
+        var conn: HttpsURLConnection? = null
+        return try {
+            val systemPrompt = "You are an Egyptian Arabic and English bilingual speech-to-text post-processor. " +
+                "Your ONLY task is to convert transliterated or borrowed English technical loanwords inside Arabic speech " +
+                "back to standard English Latin spelling (e.g. 'ميتنج' -> 'meeting', 'اللينك' -> 'الـ link', " +
+                "'بروجكت' -> 'project', 'تاسك' -> 'task', 'كالندر' -> 'calendar', 'شير' -> 'share', 'ايميل' -> 'email', " +
+                "'بي دي اف' -> 'PDF', 'سوفت وير' -> 'software', 'كول' -> 'call', 'ابلكيشن' -> 'application', 'أبديت' -> 'update').\n\n" +
+                "CRITICAL RULES:\n" +
+                "1. Keep all authentic Arabic words, Egyptian dialect, and slang completely intact as spoken.\n" +
+                "2. Do NOT translate authentic Arabic words (e.g. keep 'صباح الخير', 'ازيك', 'عامل ايه', 'تمام', 'شكرا').\n" +
+                "3. Output ONLY the resulting sentence without quotes, markdown, notes, or explanations."
+
+            val jsonBody = JSONObject().apply {
+                put("model", model)
+                put("temperature", 0.0)
+                put("max_tokens", 256)
+                val messages = org.json.JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("role", "system")
+                        put("content", systemPrompt)
+                    })
+                    put(JSONObject().apply {
+                        put("role", "user")
+                        put("content", text)
+                    })
+                }
+                put("messages", messages)
+            }
+
+            val bodyBytes = jsonBody.toString().toByteArray(Charsets.UTF_8)
+            val url = URL(chatUrl)
+            conn = (url.openConnection() as HttpsURLConnection).apply {
+                requestMethod = "POST"
+                doInput = true
+                doOutput = true
+                useCaches = false
+                connectTimeout = 3000
+                readTimeout = 3500
+                setFixedLengthStreamingMode(bodyBytes.size)
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            conn.outputStream.use { os ->
+                os.write(bodyBytes)
+                os.flush()
+            }
+
+            if (conn.responseCode == 200) {
+                val responseStr = conn.inputStream.bufferedReader().use { it.readText() }
+                val respJson = JSONObject(responseStr)
+                val choices = respJson.optJSONArray("choices")
+                val content = choices?.optJSONObject(0)?.optJSONObject("message")?.optString("content")?.trim().orEmpty()
+                if (content.isNotEmpty()) content else text
+            } else {
+                text
+            }
+        } catch (_: Exception) {
+            text
         } finally {
             conn?.disconnect()
         }

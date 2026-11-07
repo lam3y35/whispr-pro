@@ -134,6 +134,16 @@ class MainActivity : FlutterActivity(), RecognitionListener {
                         result.success(null)
                     }
 
+                    "getSmartCodeSwitching" -> {
+                        result.success(WhisperTurboClient.isSmartCodeSwitchingEnabled(this@MainActivity))
+                    }
+
+                    "setSmartCodeSwitching" -> {
+                        val enabled = call.argument<Boolean>("enabled") ?: true
+                        WhisperTurboClient.setSmartCodeSwitchingEnabled(this@MainActivity, enabled)
+                        result.success(null)
+                    }
+
                     "testApiKey" -> {
                         val key = call.argument<String>("apiKey") ?: WhisperTurboClient.getApiKey(this@MainActivity)
                         Thread {
