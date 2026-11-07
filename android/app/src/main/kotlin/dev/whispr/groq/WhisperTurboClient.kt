@@ -80,25 +80,15 @@ object WhisperTurboClient {
             "whisper-1"
         }
 
-        val boundary = "===WhisprBoundary${System.currentTimeMillis()}==="
+        val boundary = "----WhisprFormBoundary${System.currentTimeMillis()}"
         val lineEnd = "\r\n"
         val twoHyphens = "--"
 
         var conn: HttpsURLConnection? = null
         try {
-            val url = URL(endpointUrl)
-            conn = (url.openConnection() as HttpsURLConnection).apply {
-                requestMethod = "POST"
-                doInput = true
-                doOutput = true
-                useCaches = false
-                connectTimeout = 15000
-                readTimeout = 30000
-                setRequestProperty("Authorization", "Bearer $apiKey")
-                setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
-            }
-
-            val dos = DataOutputStream(conn.outputStream)
+            // Build multipart payload in memory first so Content-Length and Content-Type are exact
+            val bodyBuffer = java.io.ByteArrayOutputStream()
+            val dos = DataOutputStream(bodyBuffer)
 
             // 1. Model field
             writeFormField(dos, boundary, "model", model)
@@ -126,7 +116,7 @@ object WhisperTurboClient {
             // 5. Audio file
             dos.writeBytes("$twoHyphens$boundary$lineEnd")
             dos.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"${audioFile.name}\"$lineEnd")
-            dos.writeBytes("Content-Type: audio/m4a$lineEnd")
+            dos.writeBytes("Content-Type: audio/mp4$lineEnd")
             dos.writeBytes(lineEnd)
 
             val fileInputStream = FileInputStream(audioFile)
@@ -142,6 +132,27 @@ object WhisperTurboClient {
             dos.writeBytes("$twoHyphens$boundary$twoHyphens$lineEnd")
             dos.flush()
             dos.close()
+
+            val bodyBytes = bodyBuffer.toByteArray()
+
+            val url = URL(endpointUrl)
+            conn = (url.openConnection() as HttpsURLConnection).apply {
+                requestMethod = "POST"
+                doInput = true
+                doOutput = true
+                useCaches = false
+                connectTimeout = 15000
+                readTimeout = 30000
+                setFixedLengthStreamingMode(bodyBytes.size)
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                setRequestProperty("Accept", "application/json")
+            }
+
+            conn.outputStream.use { os ->
+                os.write(bodyBytes)
+                os.flush()
+            }
 
             val responseCode = conn.responseCode
             if (responseCode == 200) {
