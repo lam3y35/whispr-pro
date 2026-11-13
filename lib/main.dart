@@ -176,13 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _apiKeyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  void dispose() {
     bridge.setMethodCallHandler(null);
+    _apiKeyController.dispose();
     super.dispose();
   }
 
